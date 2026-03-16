@@ -1,0 +1,1295 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Agenda de Citas - Psicolog&iacute;a</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root {
+      --azul:      #1a3a5c;
+      --azul-med:  #2b5282;
+      --azul-claro:#ebf4ff;
+      --verde:     #276749;
+      --rojo:      #c53030;
+      --naranja:   #c05621;
+      --gris-bg:   #f7f8fc;
+      --gris-borde:#e2e8f0;
+      --texto:     #1a202c;
+      --texto-2:   #4a5568;
+      --texto-3:   #718096;
+      --blanco:    #ffffff;
+      --hoy:       #f6ad55;
+      --sel:       #bee3f8;
+      --sel-borde: #3182ce;
+      --sombra:    0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.06);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--gris-bg);
+      color: var(--texto);
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    /*      Encabezado      */
+    .encabezado {
+      max-width: 1200px;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .encabezado h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 26px;
+      color: var(--azul);
+      letter-spacing: -.3px;
+    }
+    .encabezado h1 span { color: var(--azul-med); }
+    .stats-top {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .stat-pill {
+      background: var(--blanco);
+      border: 1px solid var(--gris-borde);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: var(--texto-2);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .stat-pill b { color: var(--azul); font-size: 14px; }
+
+    /*      Layout      */
+    .contenedor {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 18px;
+    }
+    @media (max-width: 900px) {
+      .contenedor { grid-template-columns: 1fr; }
+    }
+
+    .tarjeta {
+      background: var(--blanco);
+      border-radius: 14px;
+      box-shadow: var(--sombra);
+      padding: 18px 20px;
+      border: 1px solid var(--gris-borde);
+    }
+
+    /* -- Calendario -- */
+    .cabecera-mes {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .cabecera-mes button {
+      background: var(--azul-claro);
+      color: var(--azul-med);
+      border: none;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background .15s;
+    }
+    .cabecera-mes button:hover { background: #bee3f8; }
+    .titulo-mes {
+      font-family: 'DM Serif Display', serif;
+      font-size: 17px;
+      color: var(--azul);
+    }
+
+    .grilla-cal {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      text-align: center;
+    }
+    .dia-semana {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--texto-3);
+      padding: 4px 0 6px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .celda-dia {
+      border-radius: 8px;
+      padding: 5px 3px;
+      min-height: 58px;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      background: var(--gris-bg);
+      transition: border-color .15s, background .15s;
+      -webkit-tap-highlight-color: rgba(49,130,206,0.2);
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .celda-dia:hover { border-color: var(--sel-borde); background: var(--azul-claro); }
+    .celda-dia.inactivo { background: transparent; cursor: default; pointer-events: none; }
+    .celda-dia.hoy { border-color: var(--hoy); }
+    .celda-dia.seleccionado { background: var(--sel); border-color: var(--sel-borde); }
+    .celda-dia.seleccionado .numero-dia { color: var(--sel-borde); }
+
+    .numero-dia {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+    .celda-dia.hoy .numero-dia {
+      background: var(--hoy);
+      color: #fff;
+      padding: 2px 5px;
+    }
+    .chips-dia {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      width: 100%;
+      margin-top: 3px;
+    }
+    .chip-dia {
+      font-size: 9.5px;
+      color: var(--azul-med);
+      background: var(--azul-claro);
+      border-radius: 3px;
+      padding: 1px 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    /*      D  a seleccionado + filtros      */
+    .barra-dia {
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .txt-dia-sel {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--azul);
+    }
+    .contador-dia {
+      font-size: 12px;
+      background: var(--azul-claro);
+      color: var(--azul-med);
+      border-radius: 10px;
+      padding: 2px 8px;
+      font-weight: 600;
+    }
+
+    .filtros {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .filtros label { font-size: 12px; color: var(--texto-3); }
+    .filtros select,
+    .filtros input[type="text"] {
+      padding: 4px 7px;
+      font-size: 12px;
+      font-family: 'DM Sans', sans-serif;
+      border: 1px solid var(--gris-borde);
+      border-radius: 6px;
+      background: var(--blanco);
+      color: var(--texto);
+    }
+
+    /*      Tabla      */
+    .wrap-tabla { overflow-x: auto; margin-top: 12px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    th, td {
+      padding: 7px 8px;
+      border-bottom: 1px solid var(--gris-borde);
+      text-align: left;
+      vertical-align: middle;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 600;
+      color: var(--texto-2);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+    tr:hover td { background: #fafbff; }
+    tr.prio-alta td:first-child { border-left: 3px solid #e53e3e; }
+    tr.prio-media td:first-child { border-left: 3px solid #dd6b20; }
+    tr.prio-baja td:first-child { border-left: 3px solid #38a169; }
+
+    .badge {
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #fff;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .tipo-presencial { background: #2f855a; }
+    .tipo-online     { background: #2b6cb0; }
+    .estado-programada { background: #718096; }
+    .estado-asistio    { background: #276749; }
+    .estado-noasistio  { background: #c53030; }
+
+    .hora-rango { white-space: nowrap; }
+    .hora-rango small { color: var(--texto-3); display: block; font-size: 10.5px; }
+
+    .acciones { white-space: nowrap; }
+    .acciones button {
+      border: none;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 11px;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      margin-right: 3px;
+      font-weight: 500;
+      transition: opacity .15s;
+    }
+    .acciones button:hover { opacity: .8; }
+    .btn-editar  { background: #fef3c7; color: #92400e; }
+    .btn-borrar  { background: #fee2e2; color: #991b1b; }
+    .btn-estado  { background: #e0f2fe; color: #0c4a6e; }
+    .btn-wa-tabla { background: #dcfce7; color: #166534; font-size: 13px; }
+
+    .sin-citas {
+      text-align: center;
+      color: var(--texto-3);
+      padding: 24px 0;
+      font-size: 13px;
+    }
+
+    .nota {
+      font-size: 11px;
+      color: var(--texto-3);
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    /*      Panel formulario      */
+    .panel-formulario h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 17px;
+      color: var(--azul);
+      margin-bottom: 12px;
+    }
+    .campo { margin-bottom: 10px; }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 3px;
+      color: var(--texto-2);
+    }
+    input[type="text"],
+    input[type="time"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 7px 9px;
+      border: 1px solid var(--gris-borde);
+      border-radius: 7px;
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--texto);
+      background: var(--blanco);
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--sel-borde);
+      box-shadow: 0 0 0 3px rgba(49,130,206,.12);
+    }
+    input[readonly] { background: #f8fafc; color: var(--texto-3); cursor: default; }
+    textarea { min-height: 50px; resize: vertical; }
+    .fila-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    .hora-fin-preview {
+      font-size: 11px;
+      color: var(--azul-med);
+      margin-top: 3px;
+    }
+
+    .botones-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .botones-form button {
+      border: none;
+      border-radius: 7px;
+      padding: 7px 12px;
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .botones-form button:hover { opacity: .88; transform: translateY(-1px); }
+    .btn-guardar  { background: var(--azul); color: #fff; }
+    .btn-limpiar  { background: var(--azul-claro); color: var(--azul-med); }
+    .btn-whatsapp { background: #25D366; color: #fff; }
+    .btn-imprimir { background: #276749; color: #fff; }
+    .btn-exportar { background: #0097a7; color: #fff; }
+    .btn-pdf      { background: #c0392b; color: #fff; }
+    .btn-pdf      { background: #e53e3e; color: #fff; }
+    .btn-importar { background: #6b7280; color: #fff; }
+
+    /*      Impresi  n      */
+    @media print {
+      body { background: #fff; padding: 0; }
+      .panel-formulario,
+      .cabecera-mes button,
+      .filtros,
+      .acciones,
+      .nota,
+      .encabezado .stats-top { display: none !important; }
+      .contenedor { max-width: 100%; display: block; }
+      .tarjeta { box-shadow: none; border-radius: 0; border: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="encabezado">
+  <h1>Agenda <span>&#183; Psicolog&iacute;a</span></h1>
+  <div class="stats-top" id="statsTop"></div>
+</div>
+
+<div class="contenedor">
+
+  <!--      Columna izquierda      -->
+  <div class="tarjeta">
+    <div class="cabecera-mes">
+      <button id="btnMesAnterior">&#8592; Anterior</button>
+      <div class="titulo-mes" id="tituloMes"></div>
+      <button id="btnMesSiguiente">Siguiente &#8594;</button>
+    </div>
+
+    <div class="grilla-cal" id="cabeceraSemana">
+      <div class="dia-semana">Lun</div>
+      <div class="dia-semana">Mar</div>
+      <div class="dia-semana">Mi&eacute;</div>
+      <div class="dia-semana">Jue</div>
+      <div class="dia-semana">Vie</div>
+      <div class="dia-semana">S&aacute;b</div>
+      <div class="dia-semana">Dom</div>
+    </div>
+    <div class="grilla-cal" id="cuerpoCalendario"></div>
+
+    <div class="barra-dia">
+      <div class="txt-dia-sel" id="textoDiaSeleccionado">Selecciona un d&iacute;a</div>
+      <div class="contador-dia" id="contadorDia"></div>
+    </div>
+
+    <div class="filtros">
+      <label>Filtros:</label>
+      <select id="filtroTipo">
+        <option value="">Tipo (todos)</option>
+        <option value="Presencial">Presencial</option>
+        <option value="Online">Online</option>
+      </select>
+      <select id="filtroEstado">
+        <option value="">Estado (todos)</option>
+        <option value="Programada">Programada</option>
+        <option value="Asisti&oacute;">Asisti&oacute;</option>
+        <option value="No asisti&oacute;">No asisti&oacute;</option>
+      </select>
+      <input type="text" id="filtroNombre" placeholder="&#128269; Buscar paciente" style="min-width:140px;">
+    </div>
+
+    <div class="wrap-tabla">
+      <table id="tablaCitas">
+        <thead>
+          <tr>
+            <th>Hora</th>
+            <th>Paciente</th>
+            <th>Motivo</th>
+            <th>Tipo</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <p class="nota">&#128274; Los datos se guardan en este dispositivo (almacenamiento local del navegador). Use Exportar para hacer respaldos.</p>
+  </div>
+
+  <!--      Columna derecha: formulario      -->
+  <div class="tarjeta panel-formulario">
+    <h2 id="tituloFormulario">Nueva cita</h2>
+
+    <form id="formCita" autocomplete="off">
+      <div class="campo">
+        <label>Fecha seleccionada</label>
+        <input type="text" id="fechaSeleccionada" readonly>
+      </div>
+      <div class="fila-2">
+        <div class="campo">
+          <label>Hora inicio</label>
+          <input type="time" id="horaInicio" required>
+          <div class="hora-fin-preview" id="horaFinPreview"></div>
+        </div>
+        <div class="campo">
+          <label>Duraci&oacute;n (min)</label>
+          <input type="number" id="duracion" value="60" min="15" max="240" step="15">
+        </div>
+      </div>
+      <div class="campo">
+        <label>Nombre del paciente</label>
+        <input type="text" id="nombrePaciente" placeholder="Apellido, Nombre" required>
+      </div>
+      <div class="campo">
+        <label>&#128241; WhatsApp del paciente</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="font-size:13px;color:var(--texto-3);white-space:nowrap;">+57</span>
+          <input type="tel" id="whatsappPaciente" placeholder="3001234567" style="flex:1;" maxlength="15">
+        </div>
+        <div style="font-size:10.5px;color:var(--texto-3);margin-top:2px;">N&uacute;mero Colombia. Sin espacios ni guiones.</div>
+      </div>
+      <div class="campo">
+        <label>Motivo de consulta (breve)</label>
+        <textarea id="motivo" placeholder="Resumen en pocas palabras..."></textarea>
+      </div>
+      <div class="fila-2">
+        <div class="campo">
+          <label>Tipo de sesi&oacute;n</label>
+          <select id="tipoSesion">
+            <option value="Presencial">Presencial</option>
+            <option value="Online">Online</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label>Tipo de cita</label>
+          <select id="tipoCita">
+            <option value="Primera vez">Primera vez</option>
+            <option value="Control">Control</option>
+            <option value="Interconsulta">Interconsulta</option>
+          </select>
+        </div>
+      </div>
+      <div class="fila-2">
+        <div class="campo">
+          <label>Prioridad</label>
+          <select id="prioridad">
+            <option value="Media">Media</option>
+            <option value="Alta">Alta</option>
+            <option value="Baja">Baja</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label>Estado</label>
+          <select id="estado">
+            <option value="Programada">Programada</option>
+            <option value="Asisti&oacute;">Asisti&oacute;</option>
+            <option value="No asisti&oacute;">No asisti&oacute;</option>
+          </select>
+        </div>
+      </div>
+      <div class="campo">
+        <label>Notas internas</label>
+        <textarea id="notas" placeholder="No se muestran al paciente..."></textarea>
+      </div>
+
+      <input type="hidden" id="idCita">
+
+      <div class="botones-form">
+        <button type="submit" class="btn-guardar">&#10003; Guardar</button>
+        <button type="button" class="btn-limpiar" id="btnNueva">+ Nueva</button>
+        <button type="button" class="btn-whatsapp" id="btnWhatsapp">&#128241; WhatsApp</button>
+        <button type="button" class="btn-imprimir" id="btnImprimir">&#128438; Imprimir</button>
+        <button type="button" class="btn-exportar" id="btnExportar">&#8595; JSON</button>
+        <button type="button" class="btn-pdf" id="btnPDF">&#128196; PDF</button>
+        <button type="button" class="btn-importar" id="btnImportar">&#8593; Importar</button>
+      </div>
+    </form>
+
+    <p class="nota" style="margin-top:12px;">&#128161; Usa el mismo nombre o c&eacute;dula que en la historia cl&iacute;nica para enlazar registros.</p>
+  </div>
+</div>
+
+<input type="file" id="inputImportar" accept="application/json" style="display:none">
+
+<!--      Modal WhatsApp      -->
+<div id="modalWA" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.18);overflow:hidden;">
+    <!-- Cabecera -->
+    <div style="background:#075E54;padding:16px 20px;display:flex;align-items:center;gap:12px;">
+      <div style="background:#25D366;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:20px;">&#128241;</div>
+      <div>
+        <div style="color:#fff;font-weight:600;font-size:15px;">Notificaci&oacute;n de Cita</div>
+        <div style="color:#a7d8c8;font-size:12px;" id="waDestinatario">Paciente</div>
+      </div>
+      <button onclick="cerrarModalWA()" style="margin-left:auto;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <!-- Burbuja preview -->
+    <div style="background:#ECE5DD;padding:16px;">
+      <div style="background:#fff;border-radius:0 10px 10px 10px;padding:12px 14px;max-width:90%;box-shadow:0 1px 3px rgba(0,0,0,.1);position:relative;">
+        <div style="position:absolute;top:0;left:-8px;width:0;height:0;border-top:8px solid #fff;border-left:8px solid transparent;"></div>
+        <div style="font-size:11px;color:#075E54;font-weight:600;margin-bottom:6px;">Consultorio de Psicolog&iacute;a</div>
+        <textarea id="waTexto" rows="10" style="width:100%;border:none;outline:none;font-size:13px;line-height:1.6;resize:vertical;font-family:'DM Sans',sans-serif;color:#303030;background:transparent;padding:0;"></textarea>
+        <div style="text-align:right;font-size:10px;color:#8e9196;margin-top:4px;" id="waHoraEnvio"></div>
+      </div>
+    </div>
+    <!-- N&uacute;mero editable -->
+    <div style="padding:12px 20px;border-top:1px solid #f0f0f0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-size:12px;color:#555;white-space:nowrap;">N&uacute;m. destino:</span>
+      <input type="tel" id="waNumero" placeholder="+573001234567" style="flex:1;min-width:140px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;">
+    </div>
+    <!-- Botones -->
+    <div style="padding:12px 20px 16px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="abrirWhatsApp()" style="flex:1;background:#25D366;color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;">
+        &#128172; Abrir WhatsApp
+      </button>
+      <button onclick="copiarMensajeWA()" id="btnCopiarWA" style="flex:1;background:#f0f4f8;color:#1a3a5c;border:1px solid #ddd;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;">
+        &#128203; Copiar mensaje
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* -- Estado global -- */
+  let hoy = new Date();
+  let mesActual  = hoy.getMonth();
+  let anioActual = hoy.getFullYear();
+  let fechaSeleccionada = new Date(anioActual, mesActual, hoy.getDate());
+
+  /* -- Persistencia -- */
+  const CLAVE = 'agenda_psicologia_citas';
+  function cargarCitas()       { try { return JSON.parse(localStorage.getItem(CLAVE)) || []; } catch(e){ return []; } }
+  function guardarCitas(lista) { localStorage.setItem(CLAVE, JSON.stringify(lista)); }
+
+  /* -- Utilidades -- */
+  function formatoISO(f) {
+    return `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,'0')}-${String(f.getDate()).padStart(2,'0')}`;
+  }
+
+  function calcularHoraFin(horaStr, minutos) {
+    if (!horaStr) return '';
+    const [h, m] = horaStr.split(':').map(Number);
+    const total = h * 60 + m + parseInt(minutos || 60);
+    return `${String(Math.floor(total/60) % 24).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;
+  }
+
+  function actualizarPreviewHoraFin() {
+    const hora = document.getElementById('horaInicio').value;
+    const dur  = document.getElementById('duracion').value;
+    const div  = document.getElementById('horaFinPreview');
+    if (hora) {
+      div.textContent = 'Fin: ' + calcularHoraFin(hora, dur);
+    } else {
+      div.textContent = '';
+    }
+  }
+
+  /* -- Stats globales -- */
+  function actualizarStats() {
+    const citas = cargarCitas();
+    const mesISO = `${anioActual}-${String(mesActual+1).padStart(2,'0')}`;
+    const delMes = citas.filter(c => c.fecha.startsWith(mesISO));
+    const asistio   = delMes.filter(c => c.estado === 'Asisti\u00f3').length;
+    const noAsistio = delMes.filter(c => c.estado === 'No asisti\u00f3').length;
+    const div = document.getElementById('statsTop');
+    div.innerHTML = `
+      <div class="stat-pill">Mes: <b>${delMes.length}</b> citas</div>
+      <div class="stat-pill">&#10003; <b>${asistio}</b> asistidas</div>
+      <div class="stat-pill">&#10007; <b>${noAsistio}</b> ausencias</div>
+      <div class="stat-pill">Total: <b>${citas.length}</b></div>
+    `;
+  }
+
+  /* -- Calendario -- */
+  function construirCalendario() {
+    const cuerpo = document.getElementById('cuerpoCalendario');
+    cuerpo.innerHTML = '';
+
+    const nombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    document.getElementById('tituloMes').textContent = `${nombres[mesActual]} ${anioActual}`;
+
+    const primerDia = new Date(anioActual, mesActual, 1);
+    let idx = primerDia.getDay();
+    idx = idx === 0 ? 6 : idx - 1; // lunes = 0
+
+    const ultimoDia = new Date(anioActual, mesActual+1, 0).getDate();
+    const citas = cargarCitas();
+    const fechaSelISO = formatoISO(fechaSeleccionada);
+
+    // Celdas vacias
+    for (let i = 0; i < idx; i++) {
+      const c = document.createElement('div');
+      c.className = 'celda-dia inactivo';
+      cuerpo.appendChild(c);
+    }
+
+    for (let dia = 1; dia <= ultimoDia; dia++) {
+      const celda = document.createElement('div');
+      celda.className = 'celda-dia';
+
+      const fecha  = new Date(anioActual, mesActual, dia);
+      const fISO   = formatoISO(fecha);
+      const esHoy  = fecha.toDateString() === hoy.toDateString();
+      const esSel  = fISO === fechaSelISO;
+      if (esHoy)  celda.classList.add('hoy');
+      if (esSel)  celda.classList.add('seleccionado');
+
+      const num = document.createElement('div');
+      num.className = 'numero-dia';
+      num.textContent = dia;
+      celda.appendChild(num);
+
+      const delDia = citas.filter(c => c.fecha === fISO).sort((a,b) => a.hora.localeCompare(b.hora));
+      if (delDia.length > 0) {
+        const chips = document.createElement('div');
+        chips.className = 'chips-dia';
+        // Mostrar maximo 2 chips + resumen
+        const visibles = delDia.slice(0, 2);
+        visibles.forEach(c => {
+          const ch = document.createElement('div');
+          ch.className = 'chip-dia';
+          ch.textContent = c.hora + ' ' + c.nombre.split(' ')[0];
+          chips.appendChild(ch);
+        });
+        if (delDia.length > 2) {
+          const mas = document.createElement('div');
+          mas.className = 'chip-dia';
+          mas.textContent = `+${delDia.length - 2} m\u00e1s`;
+          chips.appendChild(mas);
+        }
+        celda.appendChild(chips);
+      }
+
+      function seleccionarDia(e) {
+        e.preventDefault();
+        fechaSeleccionada = fecha;
+        construirCalendario();   // re-render para marcar seleccionado
+        actualizarFechaSeleccionada();
+        renderTablaCitas();
+      }
+      celda.addEventListener('click', seleccionarDia);
+      celda.addEventListener('touchend', seleccionarDia);
+
+      cuerpo.appendChild(celda);
+    }
+
+    actualizarStats();
+  }
+
+  function actualizarFechaSeleccionada() {
+    const txt   = document.getElementById('textoDiaSeleccionado');
+    const input = document.getElementById('fechaSeleccionada');
+    const opc   = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+    const largo = fechaSeleccionada.toLocaleDateString('es-ES', opc);
+    txt.textContent = largo.charAt(0).toUpperCase() + largo.slice(1);
+    input.value = formatoISO(fechaSeleccionada);
+  }
+
+  /* -- Tabla de citas -- */
+  function renderTablaCitas() {
+    const tbody = document.querySelector('#tablaCitas tbody');
+    tbody.innerHTML = '';
+
+    const citas = cargarCitas();
+    const fISO  = formatoISO(fechaSeleccionada);
+
+    const filtroTipo   = document.getElementById('filtroTipo').value;
+    const filtroEstado = document.getElementById('filtroEstado').value;
+    const filtroNombre = document.getElementById('filtroNombre').value.toLowerCase().trim();
+
+    let lista = citas.filter(c => c.fecha === fISO);
+    if (filtroTipo)   lista = lista.filter(c => c.tipoSesion === filtroTipo);
+    if (filtroEstado) lista = lista.filter(c => c.estado === filtroEstado);
+    if (filtroNombre) lista = lista.filter(c => c.nombre.toLowerCase().includes(filtroNombre));
+    lista.sort((a,b) => a.hora.localeCompare(b.hora));
+
+    // Contador
+    const counter = document.getElementById('contadorDia');
+    const total = citas.filter(c => c.fecha === fISO).length;
+    counter.textContent = total > 0 ? `${lista.length} / ${total} citas` : 'Sin citas';
+
+    if (lista.length === 0) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 6;
+      td.className = 'sin-citas';
+      td.textContent = filtroNombre || filtroTipo || filtroEstado
+        ? 'No hay citas que coincidan con los filtros.'
+        : 'No hay citas para este d\u00eda.';
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
+    }
+
+    for (const cita of lista) {
+      const tr = document.createElement('tr');
+      const prioClass = {Alta:'prio-alta', Media:'prio-media', Baja:'prio-baja'}[cita.prioridad] || '';
+      if (prioClass) tr.classList.add(prioClass);
+
+      // Hora
+      const tdHora = document.createElement('td');
+      const horaFin = calcularHoraFin(cita.hora, cita.duracion);
+      tdHora.innerHTML = `<div class="hora-rango">${cita.hora}<small>\u2192 ${horaFin} (${cita.duracion}min)</small></div>`;
+      tr.appendChild(tdHora);
+
+      // Paciente
+      const tdNom = document.createElement('td');
+      tdNom.textContent = cita.nombre;
+      tr.appendChild(tdNom);
+
+      // Motivo
+      const tdMot = document.createElement('td');
+      tdMot.textContent = cita.motivo || '\u2014';
+      tr.appendChild(tdMot);
+
+      // Tipo
+      const tdTipo = document.createElement('td');
+      const sTipo = document.createElement('span');
+      sTipo.className = 'badge ' + (cita.tipoSesion === 'Presencial' ? 'tipo-presencial' : 'tipo-online');
+      sTipo.textContent = cita.tipoSesion;
+      tdTipo.appendChild(sTipo);
+      tr.appendChild(tdTipo);
+
+      // Estado
+      const tdEst = document.createElement('td');
+      const sEst = document.createElement('span');
+      const clEst = cita.estado === 'Asisti\u00f3' ? 'estado-asistio'
+                  : cita.estado === 'No asisti\u00f3' ? 'estado-noasistio'
+                  : 'estado-programada';
+      sEst.className = 'badge ' + clEst;
+      sEst.textContent = cita.estado;
+      tdEst.appendChild(sEst);
+      tr.appendChild(tdEst);
+
+      // Acciones
+      const tdAcc = document.createElement('td');
+      tdAcc.className = 'acciones';
+
+      const bEd = document.createElement('button');
+      bEd.textContent = 'Editar';
+      bEd.className = 'btn-editar';
+      bEd.title = 'Cargar en formulario';
+      bEd.addEventListener('click', () => cargarEnFormulario(cita.id));
+      tdAcc.appendChild(bEd);
+
+      const bBo = document.createElement('button');
+      bBo.textContent = 'Borrar';
+      bBo.className = 'btn-borrar';
+      bBo.addEventListener('click', () => eliminarCita(cita.id));
+      tdAcc.appendChild(bBo);
+
+      const bSt = document.createElement('button');
+      bSt.textContent = 'Estado';
+      bSt.className = 'btn-estado';
+      bSt.title = 'Cambiar estado r\u00e1pido';
+      bSt.addEventListener('click', () => cambiarEstadoRapido(cita.id));
+      tdAcc.appendChild(bSt);
+
+      const bWA = document.createElement('button');
+      bWA.innerHTML = '&#128241;';
+      bWA.className = 'btn-wa-tabla';
+      bWA.title = 'Enviar notificaci\u00f3n por WhatsApp';
+      bWA.addEventListener('click', () => abrirModalWA(cita.id));
+      tdAcc.appendChild(bWA);
+
+      tr.appendChild(tdAcc);
+      tbody.appendChild(tr);
+    }
+  }
+
+  /* -- Formulario -- */
+  function limpiarFormulario() {
+    document.getElementById('formCita').reset();
+    document.getElementById('idCita').value = '';
+    document.getElementById('duracion').value = 60;
+    document.getElementById('tipoSesion').value = 'Presencial';
+    document.getElementById('tipoCita').value = 'Primera vez';
+    document.getElementById('prioridad').value = 'Media';
+    document.getElementById('estado').value = 'Programada';
+    document.getElementById('whatsappPaciente').value = '';
+    document.getElementById('tituloFormulario').textContent = 'Nueva cita';
+    document.getElementById('horaFinPreview').textContent = '';
+    actualizarFechaSeleccionada();
+  }
+
+  function guardarCitaDesdeFormulario(e) {
+    e.preventDefault();
+    const fecha     = document.getElementById('fechaSeleccionada').value;
+    const hora      = document.getElementById('horaInicio').value;
+    const duracion  = document.getElementById('duracion').value || 60;
+    const nombre    = document.getElementById('nombrePaciente').value.trim();
+    const whatsapp  = document.getElementById('whatsappPaciente').value.trim();
+    const motivo    = document.getElementById('motivo').value.trim();
+    const tipoSesion= document.getElementById('tipoSesion').value;
+    const tipoCita  = document.getElementById('tipoCita').value;
+    const prioridad = document.getElementById('prioridad').value;
+    const estado    = document.getElementById('estado').value;
+    const notas     = document.getElementById('notas').value.trim();
+    const idEdicion = document.getElementById('idCita').value;
+
+    if (!fecha)  { alert('Selecciona un d\u00eda en el calendario.'); return; }
+    if (!hora)   { alert('Ingresa la hora de inicio.'); return; }
+    if (!nombre) { alert('Ingresa el nombre del paciente.'); return; }
+
+    const citas = cargarCitas();
+
+    const conflicto = citas.find(c => c.fecha === fecha && c.hora === hora && c.id !== idEdicion);
+    if (conflicto && !confirm(`Ya hay una cita a las ${hora} con ${conflicto.nombre}. \u00bfProgramar otra de todos modos?`)) return;
+
+    if (idEdicion) {
+      const idx = citas.findIndex(c => c.id === idEdicion);
+      if (idx !== -1) citas[idx] = { ...citas[idx], fecha, hora, duracion, nombre, whatsapp, motivo, tipoSesion, tipoCita, prioridad, estado, notas };
+    } else {
+      citas.push({ id: 'cita_' + Date.now(), fecha, hora, duracion, nombre, whatsapp, motivo, tipoSesion, tipoCita, prioridad, estado, notas });
+    }
+
+    guardarCitas(citas);
+    renderTablaCitas();
+    construirCalendario();
+    limpiarFormulario();
+  }
+
+  function cargarEnFormulario(id) {
+    const cita = cargarCitas().find(c => c.id === id);
+    if (!cita) return;
+    const [y, m, d] = cita.fecha.split('-').map(Number);
+    fechaSeleccionada = new Date(y, m-1, d);
+    actualizarFechaSeleccionada();
+    construirCalendario();
+    document.getElementById('horaInicio').value      = cita.hora;
+    document.getElementById('duracion').value         = cita.duracion;
+    document.getElementById('nombrePaciente').value   = cita.nombre;
+    document.getElementById('whatsappPaciente').value = cita.whatsapp || '';
+    document.getElementById('motivo').value           = cita.motivo || '';
+    document.getElementById('tipoSesion').value       = cita.tipoSesion;
+    document.getElementById('tipoCita').value         = cita.tipoCita;
+    document.getElementById('prioridad').value        = cita.prioridad;
+    document.getElementById('estado').value           = cita.estado;
+    document.getElementById('notas').value            = cita.notas || '';
+    document.getElementById('idCita').value           = cita.id;
+    document.getElementById('tituloFormulario').textContent = 'Editar cita';
+    actualizarPreviewHoraFin();
+    renderTablaCitas();
+    // Scroll al formulario en movil
+    document.querySelector('.panel-formulario').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function eliminarCita(id) {
+    if (!confirm('\u00bfEliminar esta cita? Esta acci\u00f3n no se puede deshacer.')) return;
+    let citas = cargarCitas().filter(c => c.id !== id);
+    guardarCitas(citas);
+    renderTablaCitas();
+    construirCalendario();
+  }
+
+  function cambiarEstadoRapido(id) {
+    const citas = cargarCitas();
+    const idx = citas.findIndex(c => c.id === id);
+    if (idx === -1) return;
+    const ciclo = { 'Programada': 'Asisti\u00f3', 'Asisti\u00f3': 'No asisti\u00f3', 'No asisti\u00f3': 'Programada' };
+    citas[idx].estado = ciclo[citas[idx].estado] || 'Programada';
+    guardarCitas(citas);
+    renderTablaCitas();
+    actualizarStats();
+  }
+
+  /* -- Exportar / Importar -- */
+  function exportarCitas() {
+    const datos = localStorage.getItem(CLAVE) || '[]';
+    const fecha = new Date().toISOString().slice(0,10);
+    const blob  = new Blob([datos], { type: 'application/json' });
+    const url   = URL.createObjectURL(blob);
+    const a     = Object.assign(document.createElement('a'), { href: url, download: `agenda_psicologia_${fecha}.json` });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /* -- Exportar PDF -- */
+  function exportarPDF() {
+    const { jsPDF } = window.jspdf;
+    const citas = cargarCitas();
+
+    // Preguntar al usuario que exportar
+    const opcion = confirm(
+      'OK = citas del d\u00eda seleccionado\nCancelar = todas las citas del mes visible'
+    );
+
+    const nombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+    let lista, titulo, subtitulo;
+
+    if (opcion) {
+      // Citas del dia
+      const fISO = formatoISO(fechaSeleccionada);
+      lista = citas.filter(c => c.fecha === fISO).sort((a,b) => a.hora.localeCompare(b.hora));
+      const opc = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+      const txtFecha = fechaSeleccionada.toLocaleDateString('es-ES', opc);
+      titulo = 'Agenda de Citas \u2013 Psicolog\u00eda';
+      subtitulo = txtFecha.charAt(0).toUpperCase() + txtFecha.slice(1);
+    } else {
+      // Citas del mes
+      const mesISO = `${anioActual}-${String(mesActual+1).padStart(2,'0')}`;
+      lista = citas.filter(c => c.fecha.startsWith(mesISO)).sort((a,b) =>
+        a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora)
+      );
+      titulo = 'Agenda de Citas \u2013 Psicolog\u00eda';
+      subtitulo = `${nombres[mesActual]} ${anioActual}`;
+    }
+
+    if (lista.length === 0) {
+      alert('No hay citas para exportar en el per\u00edodo seleccionado.');
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const azul = [26, 58, 92];
+    const gris = [100, 100, 100];
+
+    // Encabezado
+    doc.setFillColor(...azul);
+    doc.rect(0, 0, 297, 18, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(titulo, 14, 11);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(subtitulo, 14, 16.5);
+
+    // Fecha de generacion (derecha)
+    const hoyStr = new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' });
+    doc.setFontSize(8);
+    doc.text(`Generado: ${hoyStr}`, 283, 16.5, { align: 'right' });
+
+    // Estadisticas rapidas
+    const asistio   = lista.filter(c => c.estado === 'Asisti\u00f3').length;
+    const noAsistio = lista.filter(c => c.estado === 'No asisti\u00f3').length;
+    const programada = lista.filter(c => c.estado === 'Programada').length;
+
+    doc.setTextColor(...gris);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(
+      `Total: ${lista.length}   Asistidas: ${asistio}   Ausencias: ${noAsistio}   Programadas: ${programada}`,
+      14, 24
+    );
+
+    // Tabla
+    const filas = lista.map(c => [
+      opcion ? c.hora : c.fecha.split('-').reverse().join('/') + '  ' + c.hora,
+      calcularHoraFin(c.hora, c.duracion),
+      c.nombre,
+      c.motivo || '\u2014',
+      c.tipoSesion,
+      c.tipoCita,
+      c.prioridad,
+      c.estado,
+      c.notas || ''
+    ]);
+
+    const cabeceras = opcion
+      ? ['Hora', 'Fin', 'Paciente', 'Motivo', 'Tipo', 'Cita', 'Prioridad', 'Estado', 'Notas']
+      : ['Fecha / Hora', 'Fin', 'Paciente', 'Motivo', 'Tipo', 'Cita', 'Prioridad', 'Estado', 'Notas'];
+
+    doc.autoTable({
+      head: [cabeceras],
+      body: filas,
+      startY: 28,
+      margin: { left: 14, right: 14 },
+      styles: {
+        fontSize: 8,
+        cellPadding: 2.5,
+        lineColor: [220, 220, 230],
+        lineWidth: 0.2,
+        font: 'helvetica'
+      },
+      headStyles: {
+        fillColor: azul,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 8
+      },
+      alternateRowStyles: { fillColor: [245, 248, 255] },
+      columnStyles: {
+        0: { cellWidth: opcion ? 14 : 26 },
+        1: { cellWidth: 14 },
+        2: { cellWidth: 42 },
+        3: { cellWidth: 50 },
+        4: { cellWidth: 20 },
+        5: { cellWidth: 22 },
+        6: { cellWidth: 18 },
+        7: { cellWidth: 20 },
+        8: { cellWidth: 'auto' }
+      },
+      didDrawCell: (data) => {
+        if (data.section === 'body' && data.column.index === 7) {
+          const val = data.cell.raw;
+          let color;
+          if (val === 'Asisti\u00f3')      color = [39, 103, 73];
+          else if (val === 'No asisti\u00f3') color = [197, 48, 48];
+          else                              color = [113, 128, 150];
+          if (color) {
+            doc.setFillColor(...color);
+            doc.roundedRect(data.cell.x + 1, data.cell.y + 1.5,
+              data.cell.width - 2, data.cell.height - 3, 1, 1, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(7);
+            doc.text(val, data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2 + 0.5,
+              { align: 'center', baseline: 'middle' });
+          }
+        }
+        // Color por prioridad (borde lateral)
+        if (data.section === 'body' && data.column.index === 0) {
+          const prio = data.row.raw[6];
+          let colorPrio = null;
+          if (prio === 'Alta')  colorPrio = [229, 62, 62];
+          else if (prio === 'Media') colorPrio = [221, 107, 32];
+          else if (prio === 'Baja')  colorPrio = [56, 161, 105];
+          if (colorPrio) {
+            doc.setFillColor(...colorPrio);
+            doc.rect(data.cell.x, data.cell.y, 1.5, data.cell.height, 'F');
+          }
+        }
+      },
+      didParseCell: (data) => {
+        // Ocultar texto de estado (lo dibujamos como badge)
+        if (data.section === 'body' && data.column.index === 7) {
+          data.cell.styles.textColor = [255, 255, 255];
+        }
+      }
+    });
+
+    // Pie de pagina
+    const totalPags = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPags; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(160, 160, 160);
+      doc.text(`P\u00e1gina ${i} de ${totalPags}  \u2022  Agenda Psicolog\u00eda \u2013 Drummond`, 14, 207);
+      doc.text(hoyStr, 283, 207, { align: 'right' });
+    }
+
+    const nombreArchivo = opcion
+      ? `citas_${formatoISO(fechaSeleccionada)}.pdf`
+      : `citas_${nombres[mesActual]}_${anioActual}.pdf`;
+    doc.save(nombreArchivo);
+  }
+
+  document.getElementById('btnPDF').addEventListener('click', exportarPDF);
+  document.getElementById('btnWhatsapp').addEventListener('click', () => abrirModalWA());
+  function generarMensajeWA(cita) {
+    const diasSemana = ['domingo','lunes','martes','mi\u00e9rcoles','jueves','viernes','s\u00e1bado'];
+    const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const [y, m, d] = cita.fecha.split('-').map(Number);
+    const fechaObj = new Date(y, m-1, d);
+    const diaSemana = diasSemana[fechaObj.getDay()];
+    const mesNombre = meses[m-1];
+    const horaFin   = calcularHoraFin(cita.hora, cita.duracion);
+    const modalidad = cita.tipoSesion === 'Online'
+      ? 'sesi\u00f3n online (le enviaremos el enlace de videollamada con anticipaci\u00f3n)'
+      : 'consulta presencial en nuestro consultorio';
+
+    const eCalendario = String.fromCodePoint(0x1F4C5);
+    const eReloj      = String.fromCodePoint(0x23F0);
+    const eClipboard  = String.fromCodePoint(0x1F4CB);
+    const eMovil      = String.fromCodePoint(0x1F4F1);
+    const eCorazon    = String.fromCodePoint(0x1F499);
+    const eLaptop     = String.fromCodePoint(0x1F4BB);
+    const eHospital   = String.fromCodePoint(0x1F3E5);
+
+    return `Estimado/a ${cita.nombre},
+
+Le confirmamos su cita programada con nuestro Consultorio de Psicolog\u00eda:
+
+${eCalendario} *Fecha:* ${diaSemana.charAt(0).toUpperCase()+diaSemana.slice(1)}, ${d} de ${mesNombre} de ${y}
+${eReloj} *Hora:* ${cita.hora} \u2013 ${horaFin} (${cita.duracion} minutos)
+${eClipboard} *Tipo de cita:* ${cita.tipoCita}
+${eMovil} *Modalidad:* ${cita.tipoSesion === 'Online' ? 'Online ' + eLaptop : 'Presencial ' + eHospital}
+
+Le informamos que en caso de no poder asistir, le agradecemos comunicarse con nosotros con al menos *24 horas de anticipaci\u00f3n* para reprogramar su cita sin ning\u00fan inconveniente.
+
+Para cualquier consulta o modificaci\u00f3n, no dude en contactarnos por este medio.
+
+Le esperamos. ${eCorazon}
+_Consultorio de Psicolog\u00eda_`;
+  }
+
+  function abrirModalWA(idCita) {
+    let cita = null;
+
+    if (idCita) {
+      cita = cargarCitas().find(c => c.id === idCita);
+    } else {
+      // Tomar datos del formulario actual
+      const fecha   = document.getElementById('fechaSeleccionada').value;
+      const hora    = document.getElementById('horaInicio').value;
+      const nombre  = document.getElementById('nombrePaciente').value.trim();
+      const wa      = document.getElementById('whatsappPaciente').value.trim();
+      if (!fecha || !hora || !nombre) {
+        alert('Completa al menos fecha, hora y nombre del paciente antes de enviar por WhatsApp.');
+        return;
+      }
+      cita = {
+        fecha,
+        hora,
+        duracion: document.getElementById('duracion').value || 60,
+        nombre,
+        whatsapp: wa,
+        tipoSesion: document.getElementById('tipoSesion').value,
+        tipoCita:   document.getElementById('tipoCita').value,
+      };
+    }
+
+    if (!cita) return;
+
+    // Rellenar modal
+    document.getElementById('waDestinatario').textContent = cita.nombre;
+    document.getElementById('waTexto').value = generarMensajeWA(cita);
+
+    const num = (cita.whatsapp || '').replace(/\D/g,'');
+    document.getElementById('waNumero').value = num ? '+57' + num : '';
+
+    const ahora = new Date();
+    document.getElementById('waHoraEnvio').textContent =
+      ahora.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+
+    const modal = document.getElementById('modalWA');
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function cerrarModalWA() {
+    document.getElementById('modalWA').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function abrirWhatsApp() {
+    const numero  = document.getElementById('waNumero').value.replace(/\D/g,'');
+    const mensaje = document.getElementById('waTexto').value;
+    if (!numero) { alert('Ingresa el n\u00famero de WhatsApp del paciente.'); return; }
+    const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
+    window.open(url, '_blank');
+  }
+
+  function copiarMensajeWA() {
+    const texto = document.getElementById('waTexto').value;
+    navigator.clipboard.writeText(texto).then(() => {
+      const btn = document.getElementById('btnCopiarWA');
+      const original = btn.innerHTML;
+      btn.innerHTML = '&#10003; \u00a1Copiado!';
+      btn.style.background = '#d1fae5';
+      btn.style.color = '#065f46';
+      setTimeout(() => {
+        btn.innerHTML = original;
+        btn.style.background = '';
+        btn.style.color = '';
+      }, 2000);
+    }).catch(() => {
+      // Fallback para iOS Safari
+      const ta = document.getElementById('waTexto');
+      ta.select();
+      document.execCommand('copy');
+      alert('Mensaje copiado al portapapeles.');
+    });
+  }
+
+  // Cerrar modal al hacer click fuera
+  document.getElementById('modalWA').addEventListener('click', function(e) {
+    if (e.target === this) cerrarModalWA();
+  });
+
+  document.getElementById('inputImportar').addEventListener('change', function(e) {
+    const archivo = e.target.files[0];
+    if (!archivo) return;
+    const lector = new FileReader();
+    lector.onload = ev => {
+      try {
+        const datos = JSON.parse(ev.target.result);
+        if (!Array.isArray(datos)) { alert('Formato incorrecto.'); return; }
+        if (!confirm(`Se importar\u00e1n ${datos.length} citas. Esto reemplazar\u00e1 las actuales. \u00bfContinuar?`)) return;
+        guardarCitas(datos);
+        construirCalendario();
+        actualizarFechaSeleccionada();
+        renderTablaCitas();
+        alert('Importaci\u00f3n completada: ' + datos.length + ' citas.');
+      } catch { alert('Error al leer el archivo.'); }
+    };
+    lector.readAsText(archivo);
+    e.target.value = '';
+  });
+
+  /* -- Eventos -- */
+  document.getElementById('btnMesAnterior').addEventListener('click', () => {
+    mesActual--; if (mesActual < 0) { mesActual = 11; anioActual--; }
+    construirCalendario();
+  });
+  document.getElementById('btnMesSiguiente').addEventListener('click', () => {
+    mesActual++; if (mesActual > 11) { mesActual = 0; anioActual++; }
+    construirCalendario();
+  });
+
+  document.getElementById('formCita').addEventListener('submit', guardarCitaDesdeFormulario);
+  document.getElementById('btnNueva').addEventListener('click', limpiarFormulario);
+  document.getElementById('btnImprimir').addEventListener('click', () => window.print());
+  document.getElementById('btnExportar').addEventListener('click', exportarCitas);
+  document.getElementById('btnImportar').addEventListener('click', () => document.getElementById('inputImportar').click());
+
+  document.getElementById('filtroTipo').addEventListener('change', renderTablaCitas);
+  document.getElementById('filtroEstado').addEventListener('change', renderTablaCitas);
+  document.getElementById('filtroNombre').addEventListener('input', renderTablaCitas);
+
+  document.getElementById('horaInicio').addEventListener('change', actualizarPreviewHoraFin);
+  document.getElementById('duracion').addEventListener('input', actualizarPreviewHoraFin);
+
+  /* -- Inicio -- */
+  (function init() {
+    construirCalendario();
+    actualizarFechaSeleccionada();
+    renderTablaCitas();
+  })();
+
+
+</script>
+</body>
+</html>
