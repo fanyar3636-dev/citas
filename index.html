@@ -37,7 +37,45 @@
       padding: 24px 16px;
     }
 
-    /*      Encabezado      */
+    /* ── Pantalla Login ── */
+    #pantallaLogin {
+      position: fixed; inset: 0;
+      background: linear-gradient(135deg, #1a3a5c 0%, #2b5282 60%, #1a3a5c 100%);
+      z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .login-card {
+      background: #fff; border-radius: 20px; padding: 40px 36px 32px;
+      width: 100%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,.3); text-align: center;
+    }
+    .login-icon {
+      width: 68px; height: 68px; background: var(--azul-claro); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 18px;
+    }
+    .login-card h2 { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--azul); margin-bottom: 4px; }
+    .login-card p { font-size: 13px; color: var(--texto-3); margin-bottom: 24px; }
+    .login-input-wrap { position: relative; margin-bottom: 14px; }
+    .login-input-wrap input {
+      width: 100%; padding: 12px 44px 12px 16px; border: 1.5px solid var(--gris-borde);
+      border-radius: 10px; font-size: 15px; font-family: 'DM Sans', sans-serif;
+      color: var(--texto); outline: none; transition: border-color .2s; letter-spacing: 3px;
+    }
+    .login-input-wrap input:focus { border-color: var(--sel-borde); }
+    .login-input-wrap input.error { border-color: var(--rojo); animation: shake .3s; }
+    .btn-ojo {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; font-size: 18px; color: var(--texto-3); padding: 0;
+    }
+    .btn-ingresar {
+      width: 100%; padding: 12px; background: var(--azul-med); color: #fff; border: none;
+      border-radius: 10px; font-size: 15px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+      cursor: pointer; transition: background .2s;
+    }
+    .btn-ingresar:hover { background: var(--azul); }
+    .login-error { font-size: 12px; color: var(--rojo); margin-top: 10px; min-height: 18px; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+    #appContenido { display: none; }
+
+    /* ── Encabezado ── */
     .encabezado {
       max-width: 1200px;
       margin: 0 auto 20px;
@@ -72,7 +110,7 @@
     }
     .stat-pill b { color: var(--azul); font-size: 14px; }
 
-    /*      Layout      */
+    /* ── Layout ── */
     .contenedor {
       max-width: 1200px;
       margin: 0 auto;
@@ -185,7 +223,7 @@
       width: 100%;
     }
 
-    /*      D  a seleccionado + filtros      */
+    /* ── Día seleccionado + filtros ── */
     .barra-dia {
       margin-top: 14px;
       display: flex;
@@ -227,7 +265,7 @@
       color: var(--texto);
     }
 
-    /*      Tabla      */
+    /* ── Tabla ── */
     .wrap-tabla { overflow-x: auto; margin-top: 12px; }
     table {
       width: 100%;
@@ -302,7 +340,7 @@
       line-height: 1.5;
     }
 
-    /*      Panel formulario      */
+    /* ── Panel formulario ── */
     .panel-formulario h2 {
       font-family: 'DM Serif Display', serif;
       font-size: 17px;
@@ -373,7 +411,7 @@
     .btn-pdf      { background: #e53e3e; color: #fff; }
     .btn-importar { background: #6b7280; color: #fff; }
 
-    /*      Impresi  n      */
+    /* ── Impresión ── */
     @media print {
       body { background: #fff; padding: 0; }
       .panel-formulario,
@@ -389,6 +427,24 @@
 </head>
 <body>
 
+<!-- ── Pantalla Login ── -->
+<div id="pantallaLogin">
+  <div class="login-card">
+    <div class="login-icon">&#128274;</div>
+    <h2>Consultorio de Psicolog&iacute;a</h2>
+    <p>Ingresa tu contrase&ntilde;a para continuar</p>
+    <div class="login-input-wrap">
+      <input type="password" id="inputClave" placeholder="Contrase&ntilde;a" onkeydown="if(event.key==='Enter')verificarClave()">
+      <button class="btn-ojo" onclick="toggleVerClave()" title="Ver/ocultar">&#128065;</button>
+    </div>
+    <button class="btn-ingresar" onclick="verificarClave()">Ingresar</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ── Contenido principal ── -->
+<div id="appContenido">
+
 <div class="encabezado">
   <h1>Agenda <span>&#183; Psicolog&iacute;a</span></h1>
   <div class="stats-top" id="statsTop"></div>
@@ -396,7 +452,7 @@
 
 <div class="contenedor">
 
-  <!--      Columna izquierda      -->
+  <!-- ── Columna izquierda ── -->
   <div class="tarjeta">
     <div class="cabecera-mes">
       <button id="btnMesAnterior">&#8592; Anterior</button>
@@ -455,7 +511,7 @@
     <p class="nota">&#128274; Los datos se guardan en este dispositivo (almacenamiento local del navegador). Use Exportar para hacer respaldos.</p>
   </div>
 
-  <!--      Columna derecha: formulario      -->
+  <!-- ── Columna derecha: formulario ── -->
   <div class="tarjeta panel-formulario">
     <h2 id="tituloFormulario">Nueva cita</h2>
 
@@ -550,7 +606,7 @@
 
 <input type="file" id="inputImportar" accept="application/json" style="display:none">
 
-<!--      Modal WhatsApp      -->
+<!-- ── Modal WhatsApp ── -->
 <div id="modalWA" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:16px;">
   <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.18);overflow:hidden;">
     <!-- Cabecera -->
@@ -1291,5 +1347,55 @@ _Consultorio de Psicolog\u00eda_`;
 
 
 </script>
+</div><!-- fin #appContenido -->
+
+<script>
+  /* ── Login ── */
+  var CLAVE_HASH = ''; // se calcula al iniciar
+
+  // Contraseña por defecto: psico2024
+  // Usar hash SHA-256 simple en JS
+  async function hashStr(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+
+  var CLAVE_ACCESO = 'psico2024'; // <-- CAMBIA ESTA CLAVE
+
+  async function verificarClave() {
+    var input = document.getElementById('inputClave').value;
+    var err   = document.getElementById('loginError');
+    if (input === CLAVE_ACCESO) {
+      document.getElementById('pantallaLogin').style.display = 'none';
+      document.getElementById('appContenido').style.display = 'block';
+      sessionStorage.setItem('agendaAuth', '1');
+      err.textContent = '';
+    } else {
+      err.textContent = 'Contrase\u00f1a incorrecta. Intenta de nuevo.';
+      var inp = document.getElementById('inputClave');
+      inp.classList.add('error');
+      inp.value = '';
+      setTimeout(function(){ inp.classList.remove('error'); }, 500);
+    }
+  }
+
+  function toggleVerClave() {
+    var inp = document.getElementById('inputClave');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+
+  // Si ya autenticó en esta sesión, mostrar directo
+  if (sessionStorage.getItem('agendaAuth') === '1') {
+    document.getElementById('pantallaLogin').style.display = 'none';
+    document.getElementById('appContenido').style.display = 'block';
+  }
+
+  // Enfocar input al cargar
+  window.addEventListener('load', function() {
+    var inp = document.getElementById('inputClave');
+    if (inp && document.getElementById('pantallaLogin').style.display !== 'none') inp.focus();
+  });
+</script>
+
 </body>
 </html>
